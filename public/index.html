@@ -2,82 +2,85 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Key System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Key Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+    }
+    input {
+      width: 300px;
+    }
+    button {
+      background-color: #f4c430;
+      color: #121212;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #d4af37;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 18px;
+      min-height: 24px;
+    }
+  </style>
 </head>
 <body>
-  <div id="step1">
-    <h1>Step 1: Click below to proceed to Linkvertise</h1>
-    <button id="linkvertiseBtn">Go to Linkvertise</button>
-  </div>
-
-  <div id="step2" style="display:none;">
-    <h1>Step 2: Generate Key</h1>
-    <button id="generateKeyBtn">Generate Key</button>
-    <p id="keyOutput"></p>
-  </div>
+  <h1>Generate Your Key</h1>
+  <input id="tokenInput" type="text" placeholder="Enter your token here" />
+  <button id="generateBtn">Generate Key</button>
+  <div id="result"></div>
 
   <script>
-    window.onload = () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get('token');
+    const generateBtn = document.getElementById('generateBtn');
+    const tokenInput = document.getElementById('tokenInput');
+    const resultDiv = document.getElementById('result');
 
+    generateBtn.addEventListener('click', async () => {
+      const token = tokenInput.value.trim();
       if (!token) {
-        document.body.innerHTML = '<h1>Missing token in URL.</h1>';
+        resultDiv.textContent = 'Please enter a token.';
         return;
       }
+      resultDiv.textContent = 'Generating...';
 
-      // Auto send token to backend immediately
-      (async () => {
-        try {
-          await fetch('/api/addToken', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token })
-          });
-          console.log("Token registered with backend.");
-        } catch (e) {
-          console.error("Failed to register token:", e);
+      try {
+        const res = await fetch('/api/generatekey.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        });
+        const data = await res.json();
+        if (data.key) {
+          resultDiv.textContent = `Your key: ${data.key}`;
+        } else if (data.error) {
+          resultDiv.textContent = `Error: ${data.error}`;
+        } else {
+          resultDiv.textContent = 'Unknown error occurred.';
         }
-      })();
-
-      const step1 = document.getElementById('step1');
-      const step2 = document.getElementById('step2');
-      const linkvertiseBtn = document.getElementById('linkvertiseBtn');
-      const generateKeyBtn = document.getElementById('generateKeyBtn');
-      const keyOutput = document.getElementById('keyOutput');
-
-      // Show Step 2 directly since token exists
-      step1.style.display = 'none';
-      step2.style.display = 'block';
-
-      linkvertiseBtn.onclick = () => {
-        window.open('https://linkvertise.com/', '_blank');
-        step1.style.display = 'none';
-        step2.style.display = 'block';
-      };
-
-      generateKeyBtn.onclick = async () => {
-        keyOutput.innerText = "Generating key...";
-
-        try {
-          const res = await fetch('/api/generateKey', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token }),
-          });
-
-          const data = await res.json();
-
-          if (data.key) {
-            keyOutput.innerText = "Your Key: " + data.key;
-          } else {
-            keyOutput.innerText = "Error: " + (data.error || "Unknown error");
-          }
-        } catch (e) {
-          keyOutput.innerText = "Network error.";
-        }
-      };
-    };
+      } catch (err) {
+        resultDiv.textContent = 'Network error or server down.';
+        console.error(err);
+      }
+    });
   </script>
 </body>
 </html>
