@@ -3,135 +3,182 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Token Key Generator</title>
+<title>Key Generator</title>
 <style>
   body {
     font-family: Arial, sans-serif;
     background: #121212;
     color: #eee;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    margin: 0;
     padding: 20px;
+    text-align: center;
   }
   button {
+    font-size: 18px;
     padding: 10px 20px;
-    margin-top: 20px;
-    font-size: 16px;
-    border-radius: 6px;
-    border: none;
-    background-color: #f4c430;
-    color: #121212;
+    margin: 10px;
     cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.3s ease;
+    border: none;
+    border-radius: 8px;
   }
-  button:hover {
-    background-color: #d4af37;
+  #linkvertiseBtn {
+    background-color: #f1c40f;
+    color: #121212;
+  }
+  #generateBtn {
+    background-color: #2ecc71;
+    color: white;
+    opacity: 0.6;
+  }
+  #generateBtn:disabled {
+    cursor: not-allowed;
+  }
+  #status {
+    margin-top: 20px;
+    font-size: 18px;
   }
   #result {
     margin-top: 20px;
+    white-space: pre-wrap;
     font-size: 18px;
-    max-width: 90vw;
-    word-break: break-word;
-    text-align: center;
-    min-height: 24px;
+  }
+  #captchaContainer {
+    margin-top: 15px;
+    display: none;
+    color: #eee;
+  }
+  label {
+    cursor: pointer;
   }
 </style>
 </head>
 <body>
-<h1>Welcome</h1>
-<p id="status">Checking your token...</p>
-<div id="result"></div>
-
-<!-- Linkvertise button -->
-<button id="linkvertiseBtn" style="display:none;">Complete Linkvertise</button>
-
-<!-- Generate Key button -->
-<button id="generateBtn" style="display:none;">Generate Key</button>
+  <h1>Roblox Key Generator</h1>
+  <div id="status">Loading...</div>
+  <button id="linkvertiseBtn" style="display:none;">Go to Linkvertise</button>
+  <button id="generateBtn" disabled>Generate Key</button>
+  <div id="captchaContainer">
+    <label><input type="checkbox" id="captchaCheck" /> I'm not a robot</label>
+  </div>
+  <pre id="result"></pre>
 
 <script>
   const status = document.getElementById('status');
   const result = document.getElementById('result');
   const linkBtn = document.getElementById('linkvertiseBtn');
   const genBtn = document.getElementById('generateBtn');
+  const captchaContainer = document.getElementById('captchaContainer');
 
-  // Helper: Set cookie
+  // Cookie helpers
   function setCookie(name, value, days) {
-    const expires = new Date(Date.now() + days*864e5).toUTCString()
-    document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/'
+    const expires = new Date(Date.now() + days*864e5).toUTCString();
+    document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
   }
-
-  // Helper: Get cookie
   function getCookie(name) {
     return document.cookie.split('; ').reduce((r, v) => {
-      const parts = v.split('=')
-      return parts[0] === name ? decodeURIComponent(parts[1]) : r
-    }, '')
+      const parts = v.split('=');
+      return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+    }, '');
   }
 
-  // Get token from URL param or cookie fallback
   const urlParams = new URLSearchParams(window.location.search);
   let token = urlParams.get('token');
+  let secretFromUrl = urlParams.get('secret');
   const linkDone = urlParams.get('linkdone') === 'true';
 
   if (token) {
-    // Save token to cookie for later
-    setCookie('userToken', token, 1); // expires in 7 days
+    setCookie('userToken', token, 1);
   } else {
     token = getCookie('userToken');
   }
 
-  if (!token) {
-    status.textContent = "No token found. Please get your token from the Roblox executor.";
-  } else {
-    // Auto register token
-    fetch('/api/addtoken.js', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
-    })
-    .then(res => res.json())
-    .then(data => {
+  let secret = null;
+  let linkvertiseVerified = false;
+
+  async function registerToken(t) {
+    status.textContent = "Registering your token...";
+    try {
+      const res = await fetch('/api/addtoken.js', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ token: t }),
+      });
+      const data = await res.json();
       if (data.success) {
+        secret = data.secret;
         status.textContent = "Token registered! Please complete Linkvertise before generating your key.";
-        if (!linkDone) {
+        linkBtn.style.display = 'inline-block';
+      } else {
+        if (data.error === "Token already registered") {
+          status.textContent = "Token already registered. Please complete Linkvertise.";
           linkBtn.style.display = 'inline-block';
         } else {
-          status.textContent = "Linkvertise completed! You can now generate your key.";
-          genBtn.style.display = 'inline-block';
+          status.textContent = "Failed to register token: " + data.error;
         }
-      } else {
-        status.textContent = "Failed to register token: " + (data.error || "Unknown error");
       }
-    })
-    .catch(() => {
+    } catch {
       status.textContent = "Network error during token registration.";
-    });
+    }
   }
 
-  // Linkvertise button click: redirect user to your Linkvertise URL
-  linkBtn.addEventListener('click', () => {
-    const linkvertiseUrl = "https://linkvertise.com/your-link"; // <-- Replace with your actual Linkvertise URL
+  async function verifyLinkvertise(t, s) {
+    status.textContent = "Verifying Linkvertise completion...";
+    try {
+      const res = await fetch('/api/verifylinkvertise.js', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ token: t, secret: s }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        linkvertiseVerified = true;
+        status.textContent = "Linkvertise verified! You can now generate your key after the timer.";
+        startGenerateTimer();
+      } else {
+        status.textContent = "Linkvertise verification failed: " + (data.error || "Unknown error");
+        linkBtn.style.display = 'inline-block';
+      }
+    } catch {
+      status.textContent = "Network error during Linkvertise verification.";
+      linkBtn.style.display = 'inline-block';
+    }
+  }
 
-    // Redirect user to Linkvertise
-    window.location.href = linkvertiseUrl;
-  });
+  function startGenerateTimer() {
+    genBtn.disabled = true;
+    genBtn.style.opacity = 0.6;
+    let seconds = 20;
+    status.textContent += ` Please wait ${seconds} seconds...`;
+    captchaContainer.style.display = 'none';
+
+    const interval = setInterval(() => {
+      seconds--;
+      status.textContent = `Linkvertise verified! You can now generate your key after the timer. Please wait ${seconds} seconds...`;
+      if (seconds <= 0) {
+        clearInterval(interval);
+        genBtn.disabled = false;
+        genBtn.style.opacity = 1;
+        status.textContent = "Timer done! Please complete the CAPTCHA and then generate your key.";
+        captchaContainer.style.display = 'block';
+      }
+    }, 1000);
+  }
 
   genBtn.addEventListener('click', () => {
+    const captchaChecked = document.getElementById('captchaCheck')?.checked;
+    if (!captchaChecked) {
+      alert("Please complete the CAPTCHA.");
+      return;
+    }
     result.textContent = "Generating key...";
     fetch('/api/generatekey.js', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ token }),
     })
     .then(res => res.json())
     .then(data => {
       if (data.key) {
-        result.textContent = "Your generated key: " + data.key + "\n\nCopy and save it!";
+        result.textContent = "Your generated key:\n" + data.key + "\n\nCopy and save it!";
       } else {
         result.textContent = "Failed to generate key: " + (data.error || "Unknown error");
       }
@@ -140,6 +187,51 @@
       result.textContent = "Network error during key generation.";
     });
   });
+
+  // Linkvertise button click
+  linkBtn.addEventListener('click', () => {
+    if (!secret) {
+      alert("Secret not available yet. Please wait and try again.");
+      return;
+    }
+    // Replace YOUR_LINKVERTISE_USERID with your actual Linkvertise user ID
+    const linkvertiseUserId = "1370853";
+
+    // The URL the user will return to after Linkvertise, with token and secret included
+    const redirectUrl = encodeURIComponent(`https://ksl-two.vercel.app/?token=${token}&linkdone=true&secret=${secret}`);
+
+    // Build Linkvertise full script URL with random number and base64-encoded redirectUrl
+    const randomPart = Math.floor(Math.random() * 1000);
+    const linkvertiseUrl = `https://link-to.net/${linkvertiseUserId}/${randomPart}/dynamic?r=${btoa(redirectUrl)}`;
+
+    window.location.href = linkvertiseUrl;
+  });
+
+  // btoa fallback for encoding
+  function btoa(str) {
+    try {
+      return window.btoa(unescape(encodeURIComponent(str)));
+    } catch {
+      // fallback for older browsers / node
+      return Buffer.from(str, 'utf-8').toString('base64');
+    }
+  }
+
+  // Main flow on page load
+  (async () => {
+    if (!token) {
+      status.textContent = "No token found. Please get your token from the Roblox executor.";
+      return;
+    }
+
+    if (linkDone && secretFromUrl) {
+      // User returned from Linkvertise with secret, verify it
+      await verifyLinkvertise(token, secretFromUrl);
+    } else {
+      // Register token & get secret
+      await registerToken(token);
+    }
+  })();
 </script>
 </body>
 </html>
