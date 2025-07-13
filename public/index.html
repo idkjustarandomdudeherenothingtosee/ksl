@@ -17,46 +17,66 @@
   </div>
 
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
+    window.onload = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
 
-    if (!token) {
-      document.body.innerHTML = '<h1>Missing token in URL.</h1>';
-      throw new Error('No token');
-    }
-
-    // **AUTO SEND token to backend on page load**
-    (async () => {
-      try {
-        await fetch('/api/addToken', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token })
-        });
-        console.log("Token registered with backend.");
-      } catch (e) {
-        console.error("Failed to register token:", e);
+      if (!token) {
+        document.body.innerHTML = '<h1>Missing token in URL.</h1>';
+        return;
       }
-    })();
 
-    const linkvertiseBtn = document.getElementById('linkvertiseBtn');
-    const generateKeyBtn = document.getElementById('generateKeyBtn');
+      // Auto send token to backend immediately
+      (async () => {
+        try {
+          await fetch('/api/addToken', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+          });
+          console.log("Token registered with backend.");
+        } catch (e) {
+          console.error("Failed to register token:", e);
+        }
+      })();
 
-    linkvertiseBtn.onclick = () => {
-      window.open('https://linkvertise.com/', '_blank');
-      document.getElementById('step1').style.display = 'none';
-      document.getElementById('step2').style.display = 'block';
-    };
+      const step1 = document.getElementById('step1');
+      const step2 = document.getElementById('step2');
+      const linkvertiseBtn = document.getElementById('linkvertiseBtn');
+      const generateKeyBtn = document.getElementById('generateKeyBtn');
+      const keyOutput = document.getElementById('keyOutput');
 
-    generateKeyBtn.onclick = async () => {
-      const res = await fetch('/api/generateKey', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ token })
-      });
+      // Show Step 2 directly since token exists
+      step1.style.display = 'none';
+      step2.style.display = 'block';
 
-      const data = await res.json();
-      document.getElementById('keyOutput').innerText = data.key ? 'Your Key: ' + data.key : 'Error: ' + data.error;
+      linkvertiseBtn.onclick = () => {
+        window.open('https://linkvertise.com/', '_blank');
+        step1.style.display = 'none';
+        step2.style.display = 'block';
+      };
+
+      generateKeyBtn.onclick = async () => {
+        keyOutput.innerText = "Generating key...";
+
+        try {
+          const res = await fetch('/api/generateKey', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token }),
+          });
+
+          const data = await res.json();
+
+          if (data.key) {
+            keyOutput.innerText = "Your Key: " + data.key;
+          } else {
+            keyOutput.innerText = "Error: " + (data.error || "Unknown error");
+          }
+        } catch (e) {
+          keyOutput.innerText = "Network error.";
+        }
+      };
     };
   </script>
 </body>
