@@ -1,6 +1,7 @@
 import { Octokit } from "octokit";
 
-const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+// ⏩ Use SUPER_TOKEN here too
+const octokit = new Octokit({ auth: process.env.SUPER_TOKEN });
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -29,7 +30,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid or used token' });
     }
 
-    delete tokens[token]; // use only once
+    delete tokens[token]; // one-time use
 
     const newContent = Buffer.from(JSON.stringify(tokens, null, 2)).toString('base64');
 
