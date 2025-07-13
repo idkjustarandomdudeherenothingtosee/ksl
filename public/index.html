@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Key System</title>
+</head>
+<body>
+  <div id="step1">
+    <h1>Step 1: Click below to proceed to Linkvertise</h1>
+    <button id="linkvertiseBtn">Go to Linkvertise</button>
+  </div>
+
+  <div id="step2" style="display:none;">
+    <h1>Step 2: Generate Key</h1>
+    <button id="generateKeyBtn">Generate Key</button>
+    <p id="keyOutput"></p>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    if (!token) {
+      document.body.innerHTML = '<h1>Missing token in URL.</h1>';
+      throw new Error('No token');
+    }
+
+    const linkvertiseBtn = document.getElementById('linkvertiseBtn');
+    const generateKeyBtn = document.getElementById('generateKeyBtn');
+
+    linkvertiseBtn.onclick = () => {
+      window.open('https://linkvertise.com/', '_blank');
+      document.getElementById('step1').style.display = 'none';
+      document.getElementById('step2').style.display = 'block';
+    };
+
+    generateKeyBtn.onclick = async () => {
+      const res = await fetch('/api/generateKey', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ token })
+      });
+
+      const data = await res.json();
+      document.getElementById('keyOutput').innerText = 'Your Key: ' + (data.key || data.error);
+    };
+  </script>
+</body>
+</html>
