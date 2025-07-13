@@ -16,17 +16,12 @@
       height: 100vh;
       margin: 0;
     }
-    input, button {
-      padding: 10px;
+    button {
+      padding: 10px 20px;
       margin: 10px 0;
       font-size: 16px;
       border-radius: 6px;
       border: none;
-    }
-    input {
-      width: 300px;
-    }
-    button {
       background-color: #f4c430;
       color: #121212;
       cursor: pointer;
@@ -40,26 +35,29 @@
       margin-top: 20px;
       font-size: 18px;
       min-height: 24px;
+      max-width: 90vw;
+      word-break: break-word;
+      text-align: center;
     }
   </style>
 </head>
 <body>
   <h1>Generate Your Key</h1>
-  <input id="tokenInput" type="text" placeholder="Enter your token here" />
   <button id="generateBtn">Generate Key</button>
   <div id="result"></div>
 
   <script>
     const generateBtn = document.getElementById('generateBtn');
-    const tokenInput = document.getElementById('tokenInput');
     const resultDiv = document.getElementById('result');
 
     generateBtn.addEventListener('click', async () => {
-      const token = tokenInput.value.trim();
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
       if (!token) {
-        resultDiv.textContent = 'Please enter a token.';
+        resultDiv.textContent = 'No token found in URL.';
         return;
       }
+
       resultDiv.textContent = 'Generating...';
 
       try {
@@ -69,6 +67,7 @@
           body: JSON.stringify({ token }),
         });
         const data = await res.json();
+
         if (data.key) {
           resultDiv.textContent = `Your key: ${data.key}`;
         } else if (data.error) {
