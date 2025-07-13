@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Key System</title>
+  <title>Roblox Key Generator</title>
   <style>
     body {
       background: #121212;
@@ -18,6 +18,11 @@
       border: none;
       border-radius: 8px;
       cursor: pointer;
+    }
+    #linkvertiseBtn {
+      background: #f1c40f;
+      color: #121212;
+      display: none;
     }
     #generateBtn {
       background: #2ecc71;
@@ -35,25 +40,19 @@
       display: inline-block;
       text-align: left;
     }
-    a {
-      color: #f1c40f;
-      font-size: 18px;
-      display: block;
-      margin-top: 20px;
-    }
   </style>
 </head>
 <body>
   <h1>Roblox Key Generator</h1>
   <div id="status">Loading...</div>
-  <a id="linkvertiseLink" href="#" target="_blank" style="display:none;">👉 Go to Linkvertise 👈</a>
+  <button id="linkvertiseBtn">Go to Linkvertise</button>
   <button id="generateBtn">Generate Key</button>
   <pre id="result"></pre>
 
   <script>
     const status = document.getElementById('status');
     const result = document.getElementById('result');
-    const linkvertiseLink = document.getElementById('linkvertiseLink');
+    const linkBtn = document.getElementById('linkvertiseBtn');
     const genBtn = document.getElementById('generateBtn');
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -65,9 +64,8 @@
 
     if (!token) {
       status.textContent = "No token found in URL. Please use the Roblox executor link.";
-    } else if (linkDone && secretFromUrl) {
-      verifyLink();
     } else {
+      // Register token & get secret (or get secret if already registered)
       registerToken();
     }
 
@@ -82,16 +80,12 @@
         const data = await res.json();
         if (data.success || data.error === "Token already registered") {
           secret = data.secret;
-          const redirectBack = encodeURIComponent(`https://ksl-two.vercel.app/?token=${token}&secret=${secret}&linkdone=true`);
-          const linkvertiseUrl = `https://link-hub.net/1370853/qTSwXMg9ykMT?r=${redirectBack}`;
+          status.textContent = "Token registered. Please complete Linkvertise.";
+          linkBtn.style.display = 'inline-block';
 
-          linkvertiseLink.href = linkvertiseUrl;
-          linkvertiseLink.style.display = 'block';
-
-          status.textContent = "Your Linkvertise link is ready:";
-          // 👉 If you want INSTANT redirect:
-          // window.location.href = linkvertiseUrl;
-
+          if (linkDone && secretFromUrl) {
+            verifyLink();
+          }
         } else {
           status.textContent = "Failed: " + (data.error || "Unknown");
         }
@@ -99,6 +93,25 @@
         status.textContent = "Network error.";
       }
     }
+
+    linkBtn.addEventListener('click', () => {
+      if (!secret) {
+        alert("Secret not ready yet. Please wait.");
+        return;
+      }
+      // Build redirect URL for after Linkvertise completion
+      const redirectBack = encodeURIComponent(`https://ksl-two.vercel.app/?token=${token}&secret=${secret}&linkdone=true`);
+
+      // Your Linkvertise user ID and static URL part
+      const linkvertiseUserId = "1370853";
+      const linkvertiseDynamicPart = "qTSwXMg9ykMT"; // replace with your actual dynamic code if different
+
+      // Build Linkvertise URL with redirect param
+      const linkvertiseUrl = `https://link-hub.net/${linkvertiseUserId}/${linkvertiseDynamicPart}?r=${redirectBack}`;
+
+      // Redirect user immediately to Linkvertise page
+      window.location.href = linkvertiseUrl;
+    });
 
     async function verifyLink() {
       status.textContent = "Verifying Linkvertise completion...";
