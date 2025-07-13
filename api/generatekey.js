@@ -7,8 +7,8 @@ export default async function handler(req, res) {
 
   const { token } = req.body;
 
-  const owner = "YOUR_GITHUB_USERNAME";
-  const repo = "YOUR_REPO_NAME";
+  const owner = "idkjustarandomdudeherenothingtosee";
+  const repo = "ksl";
   const path = "tokens.json";
   const branch = "main";
 
