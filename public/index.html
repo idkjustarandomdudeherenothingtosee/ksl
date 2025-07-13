@@ -2,30 +2,40 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Test Linkvertise Button</title>
+  <title>Key System</title>
 </head>
 <body style="background:#121212;color:white;text-align:center;padding:40px;">
-
-  <h1>Test Linkvertise Redirect</h1>
-  <button id="linkvertiseBtn" style="font-size:20px;padding:10px 20px;">Go to Linkvertise</button>
+  <h1>Roblox Key System</h1>
+  <button id="linkvertiseBtn">Go to Linkvertise</button>
 
   <script>
-    // Make sure you grab the right element by its exact ID
     const linkvertiseBtn = document.getElementById('linkvertiseBtn');
 
-    // Confirm the element exists
-    console.log('Button:', linkvertiseBtn);
+    // ✅ Example: Get token from URL or make fake one for test
+    const urlParams = new URLSearchParams(window.location.search);
+    let token = urlParams.get('token');
 
-    // Show the button in case CSS hides it
-    linkvertiseBtn.style.display = 'inline-block';
+    // If no token, generate a dummy one
+    if (!token) {
+      token = crypto.randomUUID();
+    }
 
-    // Add the click handler
+    console.log("Token:", token);
+
     linkvertiseBtn.addEventListener('click', () => {
-      console.log('Clicked!');
-      alert('Redirecting to Linkvertise...');
-      window.location.href = "https://link-hub.net/1370853/qTSwXMg9ykMT";
+      const linkvertiseUserId = "1370853";
+
+      // Redirect back to your Vercel site with token
+      const redirectBack = `https://ksl-two.vercel.app/?token=${token}&linkdone=true`;
+
+      const randomPart = Math.floor(Math.random() * 1000);
+
+      const linkvertiseUrl = `https://link-to.net/${linkvertiseUserId}/${randomPart}/dynamic?r=${encodeURIComponent(redirectBack)}`;
+
+      console.log("Linkvertise URL:", linkvertiseUrl);
+
+      window.location.href = linkvertiseUrl;
     });
   </script>
-
 </body>
 </html>
