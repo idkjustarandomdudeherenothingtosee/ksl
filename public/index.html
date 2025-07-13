@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Key Generator</title>
+  <title>Token Registration & Key Generator</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -13,12 +13,13 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      min-height: 100vh;
       margin: 0;
+      padding: 20px;
     }
     button {
       padding: 10px 20px;
-      margin: 10px 0;
+      margin-top: 20px;
       font-size: 16px;
       border-radius: 6px;
       border: none;
@@ -34,51 +35,72 @@
     #result {
       margin-top: 20px;
       font-size: 18px;
-      min-height: 24px;
       max-width: 90vw;
       word-break: break-word;
       text-align: center;
+      min-height: 24px;
     }
   </style>
 </head>
 <body>
-  <h1>Generate Your Key</h1>
-  <button id="generateBtn">Generate Key</button>
+  <h1>Welcome</h1>
+  <p id="status">Checking your token...</p>
   <div id="result"></div>
+  <button id="generateBtn" style="display:none;">Generate Key</button>
 
   <script>
+    const status = document.getElementById('status');
+    const result = document.getElementById('result');
     const generateBtn = document.getElementById('generateBtn');
-    const resultDiv = document.getElementById('result');
 
-    generateBtn.addEventListener('click', async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get('token');
-      if (!token) {
-        resultDiv.textContent = 'No token found in URL.';
-        return;
-      }
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
 
-      resultDiv.textContent = 'Generating...';
-
-      try {
-        const res = await fetch('/api/generatekey.js', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
-        });
-        const data = await res.json();
-
-        if (data.key) {
-          resultDiv.textContent = `Your key: ${data.key}`;
-        } else if (data.error) {
-          resultDiv.textContent = `Error: ${data.error}`;
+    if (!token) {
+      status.textContent = "No token found in URL. Please get your token from the Roblox executor.";
+    } else {
+      // Auto register token
+      fetch('/api/addtoken.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          status.textContent = "Token registered! Complete the Linkvertise step.";
+          // Here you can put your Linkvertise link or flow trigger
+          // For example, show a button or redirect user to Linkvertise site
+          // After Linkvertise, user comes back to this page or next step
+          // For demo, we just show the Generate Key button directly
+          generateBtn.style.display = 'inline-block';
         } else {
-          resultDiv.textContent = 'Unknown error occurred.';
+          status.textContent = "Failed to register token: " + (data.error || "Unknown error");
         }
-      } catch (err) {
-        resultDiv.textContent = 'Network error or server down.';
-        console.error(err);
-      }
+      })
+      .catch(() => {
+        status.textContent = "Network error during token registration.";
+      });
+    }
+
+    generateBtn.addEventListener('click', () => {
+      result.textContent = "Generating key...";
+      fetch('/api/generatekey.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.key) {
+          result.textContent = "Your generated key: " + data.key;
+        } else {
+          result.textContent = "Failed to generate key: " + (data.error || "Unknown error");
+        }
+      })
+      .catch(() => {
+        result.textContent = "Network error during key generation.";
+      });
     });
   </script>
 </body>
