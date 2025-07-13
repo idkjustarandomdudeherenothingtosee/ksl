@@ -12,10 +12,12 @@ function generateSecret(length = 12) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST')
+    return res.status(405).json({ error: 'Method not allowed' });
 
   const { token } = req.body;
-  if (!token || token.length < 5) return res.status(400).json({ error: 'Invalid token' });
+  if (!token || token.length < 5)
+    return res.status(400).json({ error: 'Invalid token' });
 
   const owner = "idkjustarandomdudeherenothingtosee";
   const repo = "ksl";
@@ -32,7 +34,8 @@ export default async function handler(req, res) {
     let tokens = JSON.parse(content);
 
     if (tokens[token]) {
-      return res.status(400).json({ error: 'Token already registered' });
+      // Return existing secret if token already registered
+      return res.status(200).json({ success: true, secret: tokens[token].secret });
     }
 
     const secret = generateSecret();
