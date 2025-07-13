@@ -1,6 +1,5 @@
 import { Octokit } from "octokit";
 
-// ⏩ Use SUPER_TOKEN here too
 const octokit = new Octokit({ auth: process.env.SUPER_TOKEN });
 
 export default async function handler(req, res) {
@@ -30,7 +29,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid or used token' });
     }
 
-    delete tokens[token]; // one-time use
+    delete tokens[token];
 
     const newContent = Buffer.from(JSON.stringify(tokens, null, 2)).toString('base64');
 
