@@ -19,7 +19,7 @@
       border-radius: 8px;
       cursor: pointer;
     }
-    #linkvertiseBtn {
+    #getLinkBtn {
       background: #f1c40f;
       color: #121212;
       display: none;
@@ -45,15 +45,15 @@
 <body>
   <h1>Roblox Key Generator</h1>
   <div id="status">Loading...</div>
-  <button id="linkvertiseBtn">Go to Linkvertise</button>
+  <button id="getLinkBtn">Get Link</button>
   <button id="generateBtn">Generate Key</button>
   <pre id="result"></pre>
 
   <script>
     const status = document.getElementById('status');
     const result = document.getElementById('result');
-    const linkBtn = document.getElementById('linkvertiseBtn');
-    const genBtn = document.getElementById('generateBtn');
+    const getLinkBtn = document.getElementById('getLinkBtn');
+    const generateBtn = document.getElementById('generateBtn');
 
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -65,7 +65,6 @@
     if (!token) {
       status.textContent = "No token found in URL. Please use the Roblox executor link.";
     } else {
-      // Register token & get secret (or get secret if already registered)
       registerToken();
     }
 
@@ -80,8 +79,8 @@
         const data = await res.json();
         if (data.success || data.error === "Token already registered") {
           secret = data.secret;
-          status.textContent = "Token registered. Please complete Linkvertise.";
-          linkBtn.style.display = 'inline-block';
+          status.textContent = "Token registered.";
+          getLinkBtn.style.display = 'inline-block';
 
           if (linkDone && secretFromUrl) {
             verifyLink();
@@ -94,23 +93,20 @@
       }
     }
 
-    linkBtn.addEventListener('click', () => {
+    getLinkBtn.addEventListener('click', () => {
       if (!secret) {
         alert("Secret not ready yet. Please wait.");
         return;
       }
-      // Build redirect URL for after Linkvertise completion
-      const redirectBack = encodeURIComponent(`https://ksl-two.vercel.app/?token=${token}&secret=${secret}&linkdone=true`);
-
-      // Your Linkvertise user ID and static URL part
       const linkvertiseUserId = "1370853";
-      const linkvertiseDynamicPart = "qTSwXMg9ykMT"; // replace with your actual dynamic code if different
+      const randomPart = Math.floor(Math.random() * 1000);
+      // Redirect URL after Linkvertise, encoded in base64 for safe URL
+      const redirectUrl = encodeURIComponent(`https://ksl-two.vercel.app/?token=${token}&secret=${secret}&linkdone=true`);
+      // Construct the dynamic Linkvertise URL with random part and redirect param
+      const dynamicLink = `https://link-to.net/${linkvertiseUserId}/${randomPart}/dynamic?r=${redirectUrl}`;
 
-      // Build Linkvertise URL with redirect param
-      const linkvertiseUrl = `https://link-hub.net/${linkvertiseUserId}/${linkvertiseDynamicPart}?r=${redirectBack}`;
-
-      // Redirect user immediately to Linkvertise page
-      window.location.href = linkvertiseUrl;
+      // Redirect immediately to that dynamic Linkvertise link
+      window.location.href = dynamicLink;
     });
 
     async function verifyLink() {
@@ -124,7 +120,7 @@
         const data = await res.json();
         if (data.success) {
           status.textContent = "Linkvertise verified! You may now generate your key.";
-          genBtn.style.display = 'inline-block';
+          generateBtn.style.display = 'inline-block';
         } else {
           status.textContent = "Verification failed.";
         }
@@ -133,7 +129,7 @@
       }
     }
 
-    genBtn.addEventListener('click', async () => {
+    generateBtn.addEventListener('click', async () => {
       result.textContent = "Generating key...";
       try {
         const res = await fetch('/api/generatekey.js', {
