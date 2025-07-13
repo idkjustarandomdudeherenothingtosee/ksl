@@ -39,13 +39,15 @@
       border-radius: 8px;
       display: inline-block;
       text-align: left;
+      white-space: pre-wrap;
+      max-width: 600px;
     }
   </style>
 </head>
 <body>
   <h1>Roblox Key Generator</h1>
   <div id="status">Loading...</div>
-  <button id="getLinkBtn">Get Link</button>
+  <button id="getLinkBtn">Go to Linkvertise</button>
   <button id="generateBtn">Generate Key</button>
   <pre id="result"></pre>
 
@@ -99,14 +101,14 @@
         alert("Secret not ready yet. Please wait.");
         return;
       }
-      // Generate a fresh random number for dynamic link every click
-      const randomPart = Math.floor(Math.random() * 1000000); // bigger random number for uniqueness
-      // Build the redirect URL the user should come back to after ads
-      const redirectUrl = encodeURIComponent(`https://ksl-two.vercel.app/?token=${token}&secret=${secret}&linkdone=true`);
-      // Build full dynamic Linkvertise URL
-      const dynamicLink = `https://link-to.net/${LINKVERTISE_USER_ID}/${randomPart}/dynamic?r=${redirectUrl}`;
+      const randomPart = Math.floor(Math.random() * 1000000);
+      const redirectUrl = `https://ksl-two.vercel.app/?token=${token}&secret=${secret}&linkdone=true`;
 
-      // Redirect user to the dynamic linkvertise URL
+      // btoa encoding for redirect URL
+      const encodedRedirectUrl = btoa(unescape(encodeURIComponent(redirectUrl)));
+
+      const dynamicLink = `https://link-to.net/${LINKVERTISE_USER_ID}/${randomPart}/dynamic?r=${encodedRedirectUrl}`;
+
       window.location.href = dynamicLink;
     });
 
