@@ -17,8 +17,8 @@ export default async function handler(req, res) {
   const { token } = req.body;
   if (!token || token.length < 5) return res.status(400).json({ error: 'Invalid token' });
 
-  const owner = "YOUR_GITHUB_USERNAME";
-  const repo = "YOUR_REPO_NAME";
+  const owner = "idkjustarandomdudeherenothingtosee";
+  const repo = "ksl";
   const path = "tokens.json";
   const branch = "main";
 
