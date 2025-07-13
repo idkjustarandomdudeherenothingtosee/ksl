@@ -3,39 +3,146 @@
 <head>
   <meta charset="UTF-8" />
   <title>Key System</title>
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+    button {
+      font-size: 18px;
+      padding: 10px 20px;
+      margin: 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #linkvertiseBtn {
+      background: #f1c40f;
+      color: #121212;
+    }
+    #generateBtn {
+      background: #2ecc71;
+      color: white;
+    }
+    #status {
+      margin-top: 20px;
+      font-size: 18px;
+    }
+    pre {
+      background: #222;
+      padding: 10px;
+      border-radius: 8px;
+      display: inline-block;
+      text-align: left;
+    }
+  </style>
 </head>
-<body style="background:#121212;color:white;text-align:center;padding:40px;">
-  <h1>Roblox Key System</h1>
-  <button id="linkvertiseBtn">Go to Linkvertise</button>
+<body>
+  <h1>Roblox Key Generator</h1>
+  <div id="status">Loading...</div>
+  <button id="linkvertiseBtn" style="display:none;">Go to Linkvertise</button>
+  <button id="generateBtn" style="display:none;">Generate Key</button>
+  <pre id="result"></pre>
 
   <script>
-    const linkvertiseBtn = document.getElementById('linkvertiseBtn');
+    const status = document.getElementById('status');
+    const result = document.getElementById('result');
+    const linkBtn = document.getElementById('linkvertiseBtn');
+    const genBtn = document.getElementById('generateBtn');
 
-    // ✅ Example: Get token from URL or make fake one for test
     const urlParams = new URLSearchParams(window.location.search);
-    let token = urlParams.get('token');
+    const token = urlParams.get('token');
+    const linkDone = urlParams.get('linkdone') === 'true';
+    const secretFromUrl = urlParams.get('secret');
 
-    // If no token, generate a dummy one
+    let secret = null;
+
     if (!token) {
-      token = crypto.randomUUID();
+      status.textContent = "No token found in URL. Please use the Roblox executor link.";
+    } else {
+      status.textContent = "Registering your token...";
+      registerToken();
     }
 
-    console.log("Token:", token);
+    async function registerToken() {
+      try {
+        const res = await fetch('/api/addtoken.js', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ token }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          secret = data.secret;
+          status.textContent = "Token registered. Ready for Linkvertise.";
+          linkBtn.style.display = 'inline-block';
+        } else if (data.error === "Token already registered") {
+          secret = data.secret;
+          status.textContent = "Token already registered. Ready for Linkvertise.";
+          linkBtn.style.display = 'inline-block';
+        } else {
+          status.textContent = "Failed: " + (data.error || "Unknown");
+        }
+      } catch {
+        status.textContent = "Network error.";
+      }
+    }
 
-    linkvertiseBtn.addEventListener('click', () => {
-      const linkvertiseUserId = "1370853";
+    async function verifyLink() {
+      status.textContent = "Verifying Linkvertise completion...";
+      try {
+        const res = await fetch('/api/verifylinkvertise.js', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ token, secret: secretFromUrl }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          status.textContent = "Linkvertise verified! You may now generate your key.";
+          genBtn.style.display = 'inline-block';
+        } else {
+          status.textContent = "Verification failed.";
+        }
+      } catch {
+        status.textContent = "Network error.";
+      }
+    }
 
-      // Redirect back to your Vercel site with token
-      const redirectBack = `https://ksl-two.vercel.app/?token=${token}&linkdone=true`;
-
-      const randomPart = Math.floor(Math.random() * 1000);
-
-      const linkvertiseUrl = `https://link-to.net/${linkvertiseUserId}/${randomPart}/dynamic?r=${encodeURIComponent(redirectBack)}`;
-
-      console.log("Linkvertise URL:", linkvertiseUrl);
-
-      window.location.href = linkvertiseUrl;
+    linkBtn.addEventListener('click', () => {
+      if (!secret) {
+        alert("Secret not ready yet. Please wait.");
+        return;
+      }
+      const redirectBack = encodeURIComponent(`https://ksl-two.vercel.app/?token=${token}&secret=${secret}&linkdone=true`);
+      const linkvertise = `https://link-hub.net/1370853/qTSwXMg9ykMT?r=${redirectBack}`;
+      window.location.href = linkvertise;
     });
+
+    genBtn.addEventListener('click', async () => {
+      result.textContent = "Generating key...";
+      try {
+        const res = await fetch('/api/generatekey.js', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ token }),
+        });
+        const data = await res.json();
+        if (data.key) {
+          result.textContent = `Your key: ${data.key}`;
+        } else {
+          result.textContent = "Failed: " + (data.error || "Unknown");
+        }
+      } catch {
+        result.textContent = "Network error.";
+      }
+    });
+
+    if (linkDone && secretFromUrl) {
+      verifyLink();
+    }
   </script>
 </body>
 </html>
