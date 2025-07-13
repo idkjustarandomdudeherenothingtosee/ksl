@@ -25,6 +25,20 @@
       throw new Error('No token');
     }
 
+    // **AUTO SEND token to backend on page load**
+    (async () => {
+      try {
+        await fetch('/api/addToken', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+        console.log("Token registered with backend.");
+      } catch (e) {
+        console.error("Failed to register token:", e);
+      }
+    })();
+
     const linkvertiseBtn = document.getElementById('linkvertiseBtn');
     const generateKeyBtn = document.getElementById('generateKeyBtn');
 
@@ -42,7 +56,7 @@
       });
 
       const data = await res.json();
-      document.getElementById('keyOutput').innerText = 'Your Key: ' + (data.key || data.error);
+      document.getElementById('keyOutput').innerText = data.key ? 'Your Key: ' + data.key : 'Error: ' + data.error;
     };
   </script>
 </body>
