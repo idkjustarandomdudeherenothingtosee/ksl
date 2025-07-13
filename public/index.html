@@ -1,107 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Token Registration & Key Generator</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #121212;
-      color: #eee;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 20px;
-    }
-    button {
-      padding: 10px 20px;
-      margin-top: 20px;
-      font-size: 16px;
-      border-radius: 6px;
-      border: none;
-      background-color: #f4c430;
-      color: #121212;
-      cursor: pointer;
-      font-weight: bold;
-      transition: background-color 0.3s ease;
-    }
-    button:hover {
-      background-color: #d4af37;
-    }
-    #result {
-      margin-top: 20px;
-      font-size: 18px;
-      max-width: 90vw;
-      word-break: break-word;
-      text-align: center;
-      min-height: 24px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Token Key Generator</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #121212;
+    color: #eee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+  }
+  button {
+    padding: 10px 20px;
+    margin-top: 20px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: none;
+    background-color: #f4c430;
+    color: #121212;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+  }
+  button:hover {
+    background-color: #d4af37;
+  }
+  #result {
+    margin-top: 20px;
+    font-size: 18px;
+    max-width: 90vw;
+    word-break: break-word;
+    text-align: center;
+    min-height: 24px;
+  }
+</style>
 </head>
 <body>
-  <h1>Welcome</h1>
-  <p id="status">Checking your token...</p>
-  <div id="result"></div>
-  <button id="generateBtn" style="display:none;">Generate Key</button>
+<h1>Welcome</h1>
+<p id="status">Checking your token...</p>
+<div id="result"></div>
 
-  <script>
-    const status = document.getElementById('status');
-    const result = document.getElementById('result');
-    const generateBtn = document.getElementById('generateBtn');
+<!-- Linkvertise button -->
+<button id="linkvertiseBtn" style="display:none;">Complete Linkvertise</button>
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
+<!-- Generate Key button -->
+<button id="generateBtn" style="display:none;">Generate Key</button>
 
-    if (!token) {
-      status.textContent = "No token found in URL. Please get your token from the Roblox executor.";
-    } else {
-      // Auto register token
-      fetch('/api/addtoken.js', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          status.textContent = "Token registered! Complete the Linkvertise step.";
-          // Here you can put your Linkvertise link or flow trigger
-          // For example, show a button or redirect user to Linkvertise site
-          // After Linkvertise, user comes back to this page or next step
-          // For demo, we just show the Generate Key button directly
-          generateBtn.style.display = 'inline-block';
+<script>
+  const status = document.getElementById('status');
+  const result = document.getElementById('result');
+  const linkBtn = document.getElementById('linkvertiseBtn');
+  const genBtn = document.getElementById('generateBtn');
+
+  // Helper: Set cookie
+  function setCookie(name, value, days) {
+    const expires = new Date(Date.now() + days*864e5).toUTCString()
+    document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/'
+  }
+
+  // Helper: Get cookie
+  function getCookie(name) {
+    return document.cookie.split('; ').reduce((r, v) => {
+      const parts = v.split('=')
+      return parts[0] === name ? decodeURIComponent(parts[1]) : r
+    }, '')
+  }
+
+  // Get token from URL param or cookie fallback
+  const urlParams = new URLSearchParams(window.location.search);
+  let token = urlParams.get('token');
+  const linkDone = urlParams.get('linkdone') === 'true';
+
+  if (token) {
+    // Save token to cookie for later
+    setCookie('userToken', token, 1); // expires in 7 days
+  } else {
+    token = getCookie('userToken');
+  }
+
+  if (!token) {
+    status.textContent = "No token found. Please get your token from the Roblox executor.";
+  } else {
+    // Auto register token
+    fetch('/api/addtoken.js', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        status.textContent = "Token registered! Please complete Linkvertise before generating your key.";
+        if (!linkDone) {
+          linkBtn.style.display = 'inline-block';
         } else {
-          status.textContent = "Failed to register token: " + (data.error || "Unknown error");
+          status.textContent = "Linkvertise completed! You can now generate your key.";
+          genBtn.style.display = 'inline-block';
         }
-      })
-      .catch(() => {
-        status.textContent = "Network error during token registration.";
-      });
-    }
-
-    generateBtn.addEventListener('click', () => {
-      result.textContent = "Generating key...";
-      fetch('/api/generatekey.js', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.key) {
-          result.textContent = "Your generated key: " + data.key;
-        } else {
-          result.textContent = "Failed to generate key: " + (data.error || "Unknown error");
-        }
-      })
-      .catch(() => {
-        result.textContent = "Network error during key generation.";
-      });
+      } else {
+        status.textContent = "Failed to register token: " + (data.error || "Unknown error");
+      }
+    })
+    .catch(() => {
+      status.textContent = "Network error during token registration.";
     });
-  </script>
+  }
+
+  // Linkvertise button click: redirect user to your Linkvertise URL
+  linkBtn.addEventListener('click', () => {
+    const linkvertiseUrl = "https://linkvertise.com/your-link"; // <-- Replace with your actual Linkvertise URL
+
+    // Redirect user to Linkvertise
+    window.location.href = linkvertiseUrl;
+  });
+
+  genBtn.addEventListener('click', () => {
+    result.textContent = "Generating key...";
+    fetch('/api/generatekey.js', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.key) {
+        result.textContent = "Your generated key: " + data.key + "\n\nCopy and save it!";
+      } else {
+        result.textContent = "Failed to generate key: " + (data.error || "Unknown error");
+      }
+    })
+    .catch(() => {
+      result.textContent = "Network error during key generation.";
+    });
+  });
+</script>
 </body>
 </html>
