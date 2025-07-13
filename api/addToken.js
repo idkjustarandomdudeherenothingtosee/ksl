@@ -1,6 +1,5 @@
 import { Octokit } from "octokit";
 
-// ⏩ Use SUPER_TOKEN instead of GITHUB_TOKEN
 const octokit = new Octokit({ auth: process.env.SUPER_TOKEN });
 
 export default async function handler(req, res) {
@@ -19,7 +18,6 @@ export default async function handler(req, res) {
   const branch = "main";
 
   try {
-    // Get existing file
     const { data: fileData } = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
       owner,
       repo,
