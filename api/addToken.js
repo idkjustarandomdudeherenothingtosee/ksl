@@ -1,6 +1,7 @@
 import { Octokit } from "octokit";
 
-const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+// ⏩ Use SUPER_TOKEN instead of GITHUB_TOKEN
+const octokit = new Octokit({ auth: process.env.SUPER_TOKEN });
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -25,7 +26,7 @@ export default async function handler(req, res) {
       path,
     });
 
-    const sha = fileData.sha; // required for updating
+    const sha = fileData.sha;
     const content = Buffer.from(fileData.content, 'base64').toString();
     let tokens = JSON.parse(content);
 
