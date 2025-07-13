@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Key Generator</title>
+<title>Roblox Key Generator</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -56,27 +56,10 @@
   const linkBtn = document.getElementById('linkvertiseBtn');
   const genBtn = document.getElementById('generateBtn');
 
-  // Cookie helpers
-  function setCookie(name, value, days) {
-    const expires = new Date(Date.now() + days*864e5).toUTCString();
-    document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
-  }
-  function getCookie(name) {
-    return document.cookie.split('; ').reduce((r, v) => {
-      const parts = v.split('=');
-      return parts[0] === name ? decodeURIComponent(parts[1]) : r;
-    }, '');
-  }
-
+  // Read URL params
   const urlParams = new URLSearchParams(window.location.search);
   let token = urlParams.get('token');
   const linkDone = urlParams.get('linkdone') === 'true';
-
-  if (token) {
-    setCookie('userToken', token, 1);
-  } else {
-    token = getCookie('userToken');
-  }
 
   if (!token) {
     status.textContent = "No token found. Please get your token from the Roblox executor.";
@@ -92,9 +75,27 @@
     }
   }
 
+  // btoa fallback for encoding redirect url
+  function btoaSafe(str) {
+    try {
+      return window.btoa(unescape(encodeURIComponent(str)));
+    } catch {
+      return Buffer.from(str, 'utf-8').toString('base64');
+    }
+  }
+
+  const linkvertiseUserId = "1370853";
+
   linkBtn.addEventListener('click', () => {
-    // Redirect directly to fixed Linkvertise URL
-    window.location.href = "https://link-hub.net/1370853/qTSwXMg9ykMT";
+    if (!token) {
+      alert("No token found!");
+      return;
+    }
+    const randomPart = Math.floor(Math.random() * 1000);
+    const redirectUrl = `https://ksl-two.vercel.app/?token=${encodeURIComponent(token)}&linkdone=true`;
+    const encodedRedirect = btoaSafe(redirectUrl);
+    const url = `https://link-to.net/${linkvertiseUserId}/${randomPart}/dynamic?r=${encodedRedirect}`;
+    window.location.href = url;
   });
 
   genBtn.addEventListener('click', () => {
