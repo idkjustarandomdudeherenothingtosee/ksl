@@ -1,0 +1,7 @@
+{
+  "name": "key-system",
+  "version": "1.0.0",
+  "dependencies": {
+    "octokit": "^2.0.0"
+  }
+}
