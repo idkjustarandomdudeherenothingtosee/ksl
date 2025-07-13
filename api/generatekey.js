@@ -3,20 +3,20 @@ import { Octokit } from "octokit";
 const octokit = new Octokit({ auth: process.env.SUPER_TOKEN });
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST')
+    return res.status(405).json({ error: 'Method not allowed' });
 
   const { token } = req.body;
+  if (!token)
+    return res.status(400).json({ error: 'Missing token' });
 
   const owner = "idkjustarandomdudeherenothingtosee";
   const repo = "ksl";
   const path = "tokens.json";
-  const branch = "main";
 
   try {
     const { data: fileData } = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
-      owner,
-      repo,
-      path,
+      owner, repo, path,
     });
 
     const sha = fileData.sha;
@@ -24,17 +24,18 @@ export default async function handler(req, res) {
     let tokens = JSON.parse(content);
 
     if (!tokens[token]) {
-      return res.status(400).json({ error: 'Invalid or used token' });
+      return res.status(400).json({ error: 'Invalid token' });
     }
 
     if (!tokens[token].linkvertiseDone) {
-      return res.status(403).json({ error: 'Complete Linkvertise first' });
+      return res.status(403).json({ error: 'Linkvertise not completed' });
     }
 
     if (tokens[token].used) {
-      return res.status(400).json({ error: 'Token already used' });
+      return res.status(403).json({ error: 'Key already generated for this token' });
     }
 
+    // Mark token used
     tokens[token].used = true;
 
     const newContent = Buffer.from(JSON.stringify(tokens, null, 2)).toString('base64');
@@ -43,13 +44,13 @@ export default async function handler(req, res) {
       owner,
       repo,
       path,
-      branch,
-      message: `Use token ${token} and generate key`,
+      message: `Generate key for token ${token}`,
       content: newContent,
       sha,
     });
 
-    const key = 'KEY-' + Math.random().toString(36).substring(2, 12);
+    // Generate the key string
+    const key = 'KEY-' + Math.random().toString(36).substring(2, 12).toUpperCase();
 
     res.status(200).json({ key });
 
