@@ -3,15 +3,16 @@ import { Octokit } from "octokit";
 const octokit = new Octokit({ auth: process.env.SUPER_TOKEN });
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST')
+    return res.status(405).json({ error: 'Method not allowed' });
 
   const { token, secret } = req.body;
-  if (!token || !secret) return res.status(400).json({ error: 'Missing token or secret' });
+  if (!token || !secret)
+    return res.status(400).json({ error: 'Missing token or secret' });
 
   const owner = "idkjustarandomdudeherenothingtosee";
   const repo = "ksl";
   const path = "tokens.json";
-  const branch = "main";
 
   try {
     const { data: fileData } = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
@@ -23,11 +24,11 @@ export default async function handler(req, res) {
     let tokens = JSON.parse(content);
 
     if (!tokens[token]) {
-      return res.status(400).json({ error: 'Invalid token' });
+      return res.status(400).json({ error: 'Token not registered' });
     }
 
     if (tokens[token].secret !== secret) {
-      return res.status(400).json({ error: 'Invalid secret' });
+      return res.status(400).json({ error: 'Secret mismatch' });
     }
 
     tokens[token].linkvertiseDone = true;
@@ -38,8 +39,7 @@ export default async function handler(req, res) {
       owner,
       repo,
       path,
-      branch,
-      message: `Mark linkvertiseDone for token ${token}`,
+      message: `Verify Linkvertise for token ${token}`,
       content: newContent,
       sha,
     });
