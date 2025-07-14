@@ -1,23 +1,18 @@
 import { Octokit } from "octokit";
 
 const octokit = new Octokit({ auth: process.env.SUPER_TOKEN });
-
-function generateSecret(length = 12) {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let result = "";
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
+const SECRET = process.env.SHARED_SECRET;
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST')
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') return res.status(405).json({ error: "Method not allowed" });
 
-  const { token } = req.body;
-  if (!token || token.length < 5)
-    return res.status(400).json({ error: 'Invalid token' });
+  const { token, hwid, sig } = req.body;
+  if (!token || !hwid || !sig) return res.status(400).json({ error: "Missing fields" });
+
+  const checkSig = token + hwid + SECRET;
+  if (sig !== checkSig) {
+    return res.status(400).json({ error: "Invalid Light Hub signature" });
+  }
 
   const owner = "idkjustarandomdudeherenothingtosee";
   const repo = "ksl";
@@ -26,42 +21,28 @@ export default async function handler(req, res) {
 
   try {
     const { data: fileData } = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
-      owner, repo, path,
+      owner, repo, path
     });
 
     const sha = fileData.sha;
     const content = Buffer.from(fileData.content, 'base64').toString();
     let tokens = JSON.parse(content);
 
-    if (tokens[token]) {
-      // Return existing secret if token already registered
-      return res.status(200).json({ success: true, secret: tokens[token].secret });
-    }
-
-    const secret = generateSecret();
-
-    tokens[token] = {
-      used: false,
-      secret,
-      linkvertiseDone: false,
-    };
+    tokens[token] = { hwid, used: false };
 
     const newContent = Buffer.from(JSON.stringify(tokens, null, 2)).toString('base64');
 
     await octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
-      owner,
-      repo,
-      path,
-      branch,
-      message: `Add token ${token} with secret`,
+      owner, repo, path, branch,
+      message: `Register Light Hub token ${token}`,
       content: newContent,
-      sha,
+      sha
     });
 
-    res.status(200).json({ success: true, secret });
+    res.status(200).json({ success: true });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'GitHub update failed' });
+    res.status(500).json({ error: "GitHub update failed for Light Hub" });
   }
 }
