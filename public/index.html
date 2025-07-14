@@ -39,9 +39,6 @@
       border-radius: 8px;
       display: inline-block;
       text-align: left;
-      white-space: pre-wrap;
-      word-break: break-word;
-      max-width: 90vw;
     }
   </style>
 </head>
@@ -52,110 +49,116 @@
   <button id="generateBtn">Generate Key</button>
   <pre id="result"></pre>
 
-  <script>
-    const status = document.getElementById('status');
-    const result = document.getElementById('result');
-    const getLinkBtn = document.getElementById('getLinkBtn');
-    const generateBtn = document.getElementById('generateBtn');
+<script>
+  const status = document.getElementById("status");
+  const result = document.getElementById("result");
+  const getLinkBtn = document.getElementById("getLinkBtn");
+  const generateBtn = document.getElementById("generateBtn");
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    const secretFromUrl = urlParams.get('secret');
-    const linkdone = urlParams.get('linkdone') === 'true';
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get("token");
+  const linkDone = urlParams.get("linkdone") === "true";
+  const secretFromUrl = urlParams.get("secret");
+  const hwidFromUrl = urlParams.get("hwid");
+  const sigFromUrl = urlParams.get("sig");
 
-    const LINKVERTISE_USER_ID = "1370853";
-    let secret = null;
+  const LINKVERTISE_USER_ID = "1370853";
 
-    if (!token) {
-      status.textContent = "No token found in URL. Please get your token from the Roblox executor.";
-    } else {
-      registerToken();
+  if (!token) {
+    status.textContent = "No token found in URL. Please get your token from the Roblox executor.";
+  } else {
+    registerToken();
+  }
+
+  async function registerToken() {
+    status.textContent = "Registering your token...";
+    try {
+      const res = await fetch("/api/addtoken.js", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json();
+      if (data.success || data.error === "Token already registered") {
+        secret = data.secret || secretFromUrl;
+        status.textContent = "Token registered.";
+        getLinkBtn.style.display = "inline-block";
+
+        if (linkDone && secretFromUrl && hwidFromUrl && sigFromUrl) {
+          verifyLink();
+        }
+      } else {
+        status.textContent = "Failed: " + (data.error || "Unknown error");
+      }
+    } catch {
+      status.textContent = "Network error while registering token.";
+    }
+  }
+
+  getLinkBtn.addEventListener("click", () => {
+    if (!secret) {
+      alert("Secret not ready yet. Please wait.");
+      return;
     }
 
-    async function registerToken() {
-      status.textContent = "Registering your token...";
-      try {
-        const res = await fetch('/api/addtoken.js', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ token }),
-        });
-        const data = await res.json();
-        if (data.success || data.error === "Token already registered") {
-          secret = data.secret || secretFromUrl;
-          status.textContent = "Token registered.";
-          getLinkBtn.style.display = 'inline-block';
+    // Generate fresh random number for dynamic link every click
+    const randomPart = Math.floor(Math.random() * 1000000);
 
-          if (linkdone && secretFromUrl) {
-            verifyLinkvertise();
-          }
-        } else {
-          status.textContent = "Failed to register token: " + (data.error || "Unknown error");
-        }
-      } catch (e) {
-        status.textContent = "Network error while registering token.";
+    // Build redirect URL that user returns to after ads, including token, secret, and a place for hwid & sig (will be added by executor)
+    const redirectUrl = encodeURIComponent(
+      `https://ksl-two.vercel.app/?token=${token}&secret=${secret}&linkdone=true`
+    );
+
+    const dynamicLink = `https://link-to.net/${LINKVERTISE_USER_ID}/${randomPart}/dynamic?r=${redirectUrl}`;
+
+    window.location.href = dynamicLink;
+  });
+
+  async function verifyLink() {
+    status.textContent = "Verifying Linkvertise completion...";
+    try {
+      const res = await fetch("/api/verifylinkvertise.js", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          secret: secretFromUrl,
+          hwid: hwidFromUrl,
+          sig: sigFromUrl,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        status.textContent = "Linkvertise verified! You may now generate your key.";
+        generateBtn.style.display = "inline-block";
+      } else {
+        status.textContent = "Verification failed: " + (data.error || "Unknown error");
       }
+    } catch {
+      status.textContent = "Network error during verification.";
     }
+  }
 
-    getLinkBtn.addEventListener('click', () => {
-      if (!secret) {
-        alert("Secret not ready yet. Please wait.");
-        return;
+  generateBtn.addEventListener("click", async () => {
+    result.textContent = "Generating key...";
+    const hwid = hwidFromUrl;
+    const sig = sigFromUrl;
+    try {
+      const res = await fetch("/api/generatekey.js", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, hwid, sig }),
+      });
+      const data = await res.json();
+      if (data.key) {
+        result.textContent = `Your key: ${data.key}`;
+      } else {
+        result.textContent = "Failed: " + (data.error || "Unknown error");
       }
-      // Generate a random number part for dynamic uniqueness
-      const randomPart = Math.floor(Math.random() * 1000000);
-      // Build the URL user returns to AFTER ads complete
-      const redirectUrl = `https://ksl-two.vercel.app/?token=${token}&secret=${secret}&linkdone=true`;
-      // Encode redirectUrl using btoa (base64)
-      const encodedRedirectUrl = btoa(redirectUrl);
-
-      // Construct the dynamic link-to.net URL for Linkvertise
-      const dynamicLink = `https://link-to.net/${LINKVERTISE_USER_ID}/${randomPart}/dynamic?r=${encodedRedirectUrl}`;
-
-      // Redirect user to the dynamic linkvertise URL
-      window.location.href = dynamicLink;
-    });
-
-    async function verifyLinkvertise() {
-      status.textContent = "Verifying Linkvertise completion...";
-      try {
-        const res = await fetch('/api/verifylinkvertise.js', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ token, secret: secretFromUrl }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          status.textContent = "Linkvertise verified! You may now generate your key.";
-          generateBtn.style.display = 'inline-block';
-        } else {
-          status.textContent = "Verification failed: " + (data.error || "Unknown error");
-          getLinkBtn.style.display = 'inline-block';
-        }
-      } catch (e) {
-        status.textContent = "Network error during verification.";
-        getLinkBtn.style.display = 'inline-block';
-      }
+    } catch {
+      result.textContent = "Network error.";
     }
-
-    generateBtn.addEventListener('click', async () => {
-      result.textContent = "Generating key...";
-      try {
-        const res = await fetch('/api/generatekey.js', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ token }),
-        });
-        const data = await res.json();
-        if (data.key) {
-          result.textContent = `Your key: ${data.key}`;
-        } else {
-          result.textContent = "Failed: " + (data.error || "Unknown error");
-        }
-      } catch {
-        result.textContent = "Network error.";
-      }
-    });
-  </script>
+  });
+</script>
 </body>
 </html>
